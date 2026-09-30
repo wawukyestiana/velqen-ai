@@ -1,0 +1,11 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "default_agent": "velqen",
+  "instructions": ["AGENTS.md", "MEMORY.md", "USER.md"],
+  "permission": {
+    "edit": "ask",
+    "bash": "ask",
+    "webfetch": "allow",
+    "websearch": "allow"
+  }
+}

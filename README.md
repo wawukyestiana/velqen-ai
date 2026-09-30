@@ -1,0 +1,125 @@
+# Velqen AI — self-improving personal assistant on top of OpenCode
+
+Chat from Telegram → runs on your machine via `opencode serve` → handles daily tasks, creates its own automatic schedules, and learns repeating patterns into new skills (Hermes-style: observe → distill → reuse → refine).
+
+## Fresh computer? Start here
+
+You need NOTHING except Windows + internet. Pick one line:
+
+- **Zero-click (recommended):** paste this once, it installs Git if missing, clones, and runs the installer by itself:
+  ```
+  powershell -c "irm https://raw.githubusercontent.com/<user>/velqen-ai/main/bootstrap.ps1 | iex"
+  ```
+  (Already inside PowerShell? Drop the wrapper: `irm https://raw.githubusercontent.com/<user>/velqen-ai/main/bootstrap.ps1 | iex`.)
+  (Runs code from your own repo over HTTPS — same trust as any `curl | bash` installer. Plain `git clone` can never auto-run code by design, otherwise cloning a malicious repo would hack your machine.)
+- **Without git:** download this repo as ZIP from GitHub (Code → Download ZIP), extract, double-click `install.bat`. Git is not needed at all for this path.
+- **With git:** the only prerequisite is Git itself (`winget install Git.Git`), then `git clone` + `install.bat`.
+- **Everything else is automatic:** Node, Python, opencode CLI, Telegram bot, Git (if missing), `.env` / `USER.md` / `MEMORY.md` — all handled by the installer. Nothing to install first.
+
+## Install via npm (no clone, no install.bat)
+
+Needs Node 20+ already on your machine (no Node yet? use the full install below).
+```
+npm install -g velqen-ai
+velqen-ai doctor    # auto-checks: node, python, opencode, .env
+velqen-ai install   # auto-installs opencode if missing, scaffolds .env
+```
+
+`velqen-ai install` never re-downloads runtimes and never overwrites your files — it only fills what's missing. Then: fill in `.env`, `opencode auth login`, `velqen-ai serve`.
+
+## Install on a new machine (full, 1 command)
+
+```bat
+git clone https://github.com/<user>/velqen-ai.git
+cd velqen-ai
+install.bat
+```
+
+That's it. The installer asks one question first (skipped entirely if `tools/` is already filled — it reuses it as-is):
+- `[1] Existing runtimes` — Laragon if found, else system PATH (no download).
+- `[2] Fresh portable download` — Node 22 + Python 3.12 into `tools/` (needs internet).
+- `[3] System packages` — via winget.
+
+Then it installs the **opencode CLI** + prefetches the **Telegram bot**,
+and creates `.env` from the example if missing.
+
+Non-interactive flags (skip the menu, for automation):
+- `install.bat -Laragon` — force Laragon runtimes (fails loudly if missing).
+- `install.bat -Portable` — force fresh portable download.
+- `install.bat -System` — system-wide via winget, no `tools/`.
+- Linux/macOS: `bash scripts/install.sh`
+
+> `tools/` holds binaries and is NOT committed to git (see `.gitignore`). A new machine = clone + install = tools/ fills itself. Only the recipe is committed.
+
+## Install as an opencode plugin (one line)
+
+If you only want the brain (agent + skills + commands) inside your own opencode setup, no clone needed:
+
+```json
+{ "plugin": ["velqen-ai"] }
+```
+
+or:
+
+```
+opencode plugin add velqen-ai
+```
+
+Runtimes (`tools/`), Telegram wiring and schedules stay your own business — see above for the full install.
+
+## One-time setup (5 minutes)
+
+1. Fill in `.env` (copied from `.env.example`):
+   - `TELEGRAM_BOT_TOKEN` — from `@BotFather` (`/newbot`). `TELEGRAM_ALLOWED_USER_ID` — from `@userinfobot`.
+2. Log in a model (`opencode auth login`, any model, e.g. Zen or your favorite provider). Switch anytime inside opencode with `/models`.
+3. Start the backend:
+   ```
+   opencode serve
+   ```
+4. In another terminal, connect Telegram:
+   ```
+   npx @grinev/opencode-telegram-bot@latest
+   ```
+5. From your phone, chat with your bot. It answers via the `velqen` agent.
+
+## Daily use
+
+- `/schedule <describe the recurring task>` — it builds the schedule via bot `/task` OR `scripts/` + Task Scheduler, then verifies it.
+- Any pattern that succeeds 3x → it proposes a new skill under `.opencode/skills/` (the Hermes learning loop).
+
+## Layout
+
+```
+opencode.json  .env.example  AGENTS.md  MEMORY.example.md  USER.example.md
+(local-only, created by installer, never committed: .env  MEMORY.md  USER.md)
+.opencode/agent/velqen.md (primary)  judge.md (cheap subagent)
+.opencode/skills/make-schedule|self-improve/SKILL.md
+.opencode/command/schedule.md
+plugin/velqen-ai.js (npm entry, registers the bundled agent/skills/commands)
+bootstrap.ps1 (zero-click one-liner)  install.bat
+scripts/install.ps1  install.sh
+tools/ (filled by the installer, never committed)
+```
+
+## Publish so others can install it
+
+```bat
+git init
+git add .
+git commit -m "Velqen AI initial"
+git remote add origin https://github.com/<user>/velqen-ai.git
+git push -u origin main
+```
+
+Others then just `git clone ...` + `install.bat`. Never commit `.env` / tokens.
+
+## Publish the npm package
+
+One-time: replace `<user>` in `package.json`/links, put your name in `LICENSE`, create an npm account. Then:
+
+```
+npm login
+npm publish --access public
+```
+
+Bump `version` + add a `CHANGELOG.md` entry on every release.

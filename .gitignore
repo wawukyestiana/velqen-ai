@@ -1,0 +1,16 @@
+.env
+# local-only personal files, never publish
+USER.md
+MEMORY.md
+node_modules/
+*.log
+.opencode/*.log
+.opencode/goal.md
+.opencode/run-log.json
+# tools/ holds portable runtimes filled by the installer, never commit binaries
+tools/node/
+tools/python/
+tools/*.zip
+tools/env.ps1
+# agent runtime logs (wherever they land)
+run-log.json

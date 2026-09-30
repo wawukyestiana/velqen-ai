@@ -1,0 +1,28 @@
+{
+  "name": "velqen-ai",
+  "version": "0.1.0",
+  "description": "Velqen AI — self-improving personal assistant for OpenCode (Telegram + automatic schedules)",
+  "type": "module",
+  "main": "./plugin/velqen-ai.js",
+  "exports": "./plugin/velqen-ai.js",
+  "bin": {
+    "velqen-ai": "./bin/velqen-ai.js"
+  },
+  "files": ["bin/", "plugin/", ".opencode/", "README.md", "LICENSE", "CHANGELOG.md"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/<user>/velqen-ai.git"
+  },
+  "homepage": "https://github.com/<user>/velqen-ai#readme",
+  "bugs": {
+    "url": "https://github.com/<user>/velqen-ai/issues"
+  },
+  "keywords": ["velqen", "opencode", "opencode-plugin", "ai-agent", "assistant", "telegram", "scheduler"],
+  "license": "MIT",
+  "scripts": {
+    "install-win": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/install.ps1",
+    "install-laragon": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/install.ps1 -Laragon",
+    "install-portable": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/install.ps1 -Portable",
+    "serve": "opencode serve"
+  }
+}
