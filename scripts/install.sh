@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 # Velqen AI installer (Linux/macOS). Portable tools/ + opencode.
 set -e
+echo "█   █  █████  █       ████  █████  █   █"
+echo "█   █  █      █      █   █  █      ██  █"
+echo "█   █  ████   █       ████  ████   █ █ █"
+echo " █ █   █      █          █  █      █  ██"
+echo "  █    █████  █████      █  █████  █   █"
+echo "self-improving personal assistant for OpenCode"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TOOLS="$ROOT/tools"
 mkdir -p "$TOOLS/node" "$TOOLS/python"

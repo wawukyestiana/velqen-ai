@@ -62,7 +62,13 @@ function Find-Existing {
   return $null
 }
 
-Write-Output "== Velqen AI install ($Root) =="
+Write-Output "#   #  #####  #       ####  #####  #   #"
+Write-Output "#   #  #      #      #   #  #      ##  #"
+Write-Output "#   #  ####   #       ####  ####   # # #"
+Write-Output " # #   #      #          #  #      #  ##"
+Write-Output "  #    #####  #####      #  #####  #   #"
+Write-Output "self-improving personal assistant for OpenCode"
+Write-Output "($Root)"
 
 if ($System) {
   Write-Output "-- System mode: checking winget..."
@@ -206,6 +212,19 @@ if (-not (Test-Path "$Root\.env")) {
 if (-not (Test-Path "$Root\USER.md")) { Copy-Item "$Root\USER.example.md" "$Root\USER.md" }
 if (-not (Test-Path "$Root\MEMORY.md")) { Copy-Item "$Root\MEMORY.example.md" "$Root\MEMORY.md" }
 Write-Output "-- USER.md / MEMORY.md ready (local-only, fill in your name)."
+
+# --- put velqen-ai on PATH (repo bin shim, so `velqen-ai` works anywhere) ---
+$binDir = Join-Path $Root "bin"
+$u = [System.Environment]::GetEnvironmentVariable("Path", "User")
+$parts = @()
+if (-not [string]::IsNullOrEmpty($u)) { $parts = $u -split ";" }
+if ($parts -notcontains $binDir) {
+  $newPath = ((@($parts) + @($binDir)) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) -join ";"
+  [System.Environment]::SetEnvironmentVariable("Path", $newPath, "User")
+  Write-Output "-- added to user PATH (open a NEW terminal to use it): $binDir"
+} else {
+  Write-Output "-- already on user PATH: $binDir"
+}
 
 Write-Output ""
 Write-Output "DONE. Next:"

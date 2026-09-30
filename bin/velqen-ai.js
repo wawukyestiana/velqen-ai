@@ -6,9 +6,37 @@
 // No dependencies. Never overwrites your files, only fills gaps.
 
 import { spawnSync } from "node:child_process";
-import { existsSync, copyFileSync } from "node:fs";
+import { existsSync, copyFileSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+
+const GLYPHS = {
+  V: ["█   █", "█   █", "█   █", " █ █ ", "  █  "],
+  E: ["█████", "█    ", "████ ", "█    ", "█████"],
+  L: ["█    ", "█    ", "█    ", "█    ", "█████"],
+  Q: [" ████", "█   █", " ████", "    █", "    █"],
+  N: ["█   █", "██  █", "█ █ █", "█  ██", "█   █"]
+};
+const BANNER = [0, 1, 2, 3, 4]
+  .map((r) => "VELQEN".split("").map((ch) => GLYPHS[ch][r]).join("  "))
+  .join("\n");
+
+function getVersion() {
+  try {
+    const pkg = JSON.parse(readFileSync(join(PKG_ROOT, "package.json"), "utf8"));
+    if (pkg && pkg.version) return "v" + pkg.version;
+  } catch {
+    // no version, no problem
+  }
+  return "";
+}
+
+function showBanner() {
+  console.log(BANNER);
+  const v = getVersion();
+  console.log("self-improving personal assistant for OpenCode" + (v ? " " + v : ""));
+  console.log("");
+}
 
 const PKG_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const IS_WIN = process.platform === "win32";
@@ -86,7 +114,7 @@ function ensureFiles() {
 }
 
 function doctor() {
-  console.log("== velqen-ai doctor ==");
+  showBanner();
   const major = parseInt(process.version.slice(1), 10);
   console.log("node: " + process.version + (major >= 20 ? " (ok)" : " (NEEDS >= 20, use install.bat for portable node)"));
   console.log("npm: " + (versionOf("npm") || "MISSING"));
@@ -99,7 +127,7 @@ function doctor() {
 }
 
 function install() {
-  console.log("== velqen-ai install ==");
+  showBanner();
   const major = parseInt(process.version.slice(1), 10);
   if (major < 20) {
     throw new Error("Node " + process.version + " too old (needs 20+). No Node at all? Clone the repo and run install.bat for portable runtimes.");
@@ -123,7 +151,8 @@ function serve() {
 }
 
 function help() {
-  console.log("velqen-ai — self-improving personal assistant for OpenCode");
+  showBanner();
+  console.log("Usage: velqen-ai <command>");
   console.log("  velqen-ai doctor   check runtimes, opencode, and local files");
   console.log("  velqen-ai install  auto-install opencode if missing + scaffold .env");
   console.log("  velqen-ai serve    run `opencode serve`");
