@@ -8,7 +8,7 @@ Paste once on a fresh Windows machine (internet, nothing else required):
 (Already inside PowerShell? Drop the wrapper: irm https://raw.githubusercontent.com/wawukyestiana/velqen-ai/main/bootstrap.ps1 | iex)
 
 It installs Git (via winget) when missing, clones the repo, and runs install.bat.
-Optional installer flags: -InstallerArgs "-Portable" (or "-Laragon", "-System").
+Optional installer flags: -InstallerArgs "-Portable" (or "-Existing", "-System").
 
 Trust note: this runs code from YOUR OWN repo over HTTPS - the same trust
 model as any `curl | bash` installer. Verify the URL before pasting.

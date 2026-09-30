@@ -3,9 +3,10 @@
 Velqen AI installer (Windows).
   install.bat              -> smart default (no questions when possible):
                             - tools/ already filled (copy/download) -> reuse as-is
-                            - else Laragon found -> ask [1] existing / [2] fresh / [3] winget
+                            - else existing runtimes found (PATH, Program Files, version managers, ...) ->
+                              ask [1] existing / [2] fresh / [3] winget
                             - else no runtimes at all -> ask [1] system / [2] fresh / [3] winget
-  install.bat -Laragon     -> force Laragon runtimes (fail if not found)
+  install.bat -Existing    -> force existing runtimes (fail if none found)
   install.bat -Portable    -> force fresh portable download into tools/
   install.bat -System      -> system-wide via winget, no tools/ folder
 
@@ -13,10 +14,10 @@ Flags skip the menu (for automation). No flags = ask only when needed.
 Model + API key are handled inside opencode itself (/models, auth login).
 
 Result: tools/env.ps1, .env, opencode + Telegram bot ready.
-Existing binaries (Laragon/system/tools-copy) are referenced in place, never copied.
+Existing binaries are referenced in place, never copied.
 Only portable mode downloads binaries into tools/node + tools/python.
 #>
-param([switch]$System, [switch]$Laragon, [switch]$Portable)
+param([switch]$System, [switch]$Existing, [switch]$Portable)
 
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
@@ -27,18 +28,49 @@ $PyVer = "3.12.8"
 
 function Have($cmd) { $null -ne (Get-Command $cmd -ErrorAction SilentlyContinue) }
 
-function Find-Laragon {
+function Find-NodeDir {
+  $fromPath = Get-Command node -ErrorAction SilentlyContinue
+  if ($fromPath) {
+    try {
+      $v = (& $fromPath.Source -v 2>$null).Trim()
+      if ($v -match "^v(\d+)\.") {
+        if ([int]$Matches[1] -ge 20) { return (Split-Path -Parent $fromPath.Source) }
+      }
+    } catch { }
+  }
+  foreach ($d in @("$env:ProgramFiles\nodejs", "${env:ProgramFiles(x86)}\nodejs")) {
+    if (Test-Path (Join-Path $d "node.exe")) { return $d }
+  }
   foreach ($base in @("D:\laragon", "C:\laragon")) {
-    $nodeDir = Join-Path $base "bin\nodejs"
-    $pyDir = Join-Path $base "bin\python"
-    $node = Get-ChildItem -LiteralPath $nodeDir -Directory -ErrorAction SilentlyContinue |
+    $best = Get-ChildItem -LiteralPath (Join-Path $base "bin\nodejs") -Directory -ErrorAction SilentlyContinue |
       Where-Object { Test-Path (Join-Path $_.FullName "node.exe") } |
       Sort-Object Name -Descending | Select-Object -First 1
-    $py = Get-ChildItem -LiteralPath $pyDir -Directory -ErrorAction SilentlyContinue |
+    if ($best) { return $best.FullName }
+  }
+  return $null
+}
+
+function Find-PythonDir {
+  foreach ($cmd in @("python", "python3")) {
+    $p = Get-Command $cmd -ErrorAction SilentlyContinue
+    if ($p) { return (Split-Path -Parent $p.Source) }
+  }
+  foreach ($d in @("$env:ProgramFiles\Python313", "$env:ProgramFiles\Python312", "$env:ProgramFiles\Python311", "$env:LOCALAPPDATA\Programs\Python\Python313", "$env:LOCALAPPDATA\Programs\Python\Python312")) {
+    if (Test-Path (Join-Path $d "python.exe")) { return $d }
+  }
+  foreach ($base in @("D:\laragon", "C:\laragon")) {
+    $best = Get-ChildItem -LiteralPath (Join-Path $base "bin\python") -Directory -ErrorAction SilentlyContinue |
       Where-Object { Test-Path (Join-Path $_.FullName "python.exe") } |
       Sort-Object Name -Descending | Select-Object -First 1
-    if ($node -and $py) { return @{ Node = $node.FullName; Python = $py.FullName } }
+    if ($best) { return $best.FullName }
   }
+  return $null
+}
+
+function Find-Existing {
+  $n = Find-NodeDir
+  $p = Find-PythonDir
+  if ($n -and $p) { return @{ Node = $n; Python = $p } }
   return $null
 }
 
@@ -52,23 +84,23 @@ if ($System) {
 } else {
   New-Item -ItemType Directory -Force -Path $Tools | Out-Null
   $useCopy = $false
-  $useLaragon = $false
+  $useExisting = $false
   $doPortable = $false
   $useSystem = $false
   $copyReady = (Test-Path "$Tools\node\node.exe") -and (Test-Path "$Tools\python\python.exe")
-  if ($Laragon) {
-    $found = Find-Laragon
-    if (-not $found) { throw "Laragon runtimes not found. Install Laragon or run without -Laragon." }
-    $useLaragon = $true
+  if ($Existing) {
+    $found = Find-Existing
+    if (-not $found) { throw "No existing runtimes found. Install Node 20+ and Python, or re-run without -Existing." }
+    $useExisting = $true
   } elseif ($Portable) {
     $doPortable = $true
   } elseif ($copyReady) {
     $useCopy = $true
   } else {
-    $found = Find-Laragon
+    $found = Find-Existing
     Write-Output "Choose runtime source:"
     if ($found) {
-      Write-Output "  [1] Existing Laragon runtimes (no download) - RECOMMENDED"
+      Write-Output "  [1] Existing runtimes (no download) - RECOMMENDED"
       Write-Output ("      node:   " + $found.Node)
       Write-Output ("      python: " + $found.Python)
     } else {
@@ -80,7 +112,7 @@ if ($System) {
     catch { $choice = "" }
     if ([string]::IsNullOrWhiteSpace($choice)) { $choice = "1" }
     switch ($choice.Trim()) {
-      "1" { if ($found) { $useLaragon = $true } else { $useSystem = $true } }
+      "1" { if ($found) { $useExisting = $true } else { $useSystem = $true } }
       "2" { $doPortable = $true }
       "3" {
         Write-Output "-- System mode: checking winget..."
@@ -91,21 +123,21 @@ if ($System) {
       }
       default {
         Write-Output "Unknown choice, using default."
-        if ($found) { $useLaragon = $true } else { $useSystem = $true }
+        if ($found) { $useExisting = $true } else { $useSystem = $true }
       }
     }
   }
   if ($useCopy) {
     Write-Output "-- reusing existing tools/ runtimes (no download, no changes)."
     if (Test-Path "$Tools\env.ps1") { . "$Tools\env.ps1" }
-  } elseif ($useLaragon) {
-    Write-Output "-- reusing Laragon runtimes (no download, no copy):"
+  } elseif ($useExisting) {
+    Write-Output "-- reusing existing runtimes (no download, no copy):"
     Write-Output ("   node:   " + $found.Node)
     Write-Output ("   python: " + $found.Python)
     $lines = @(
-      '$LaragonNode = "{0}"' -f $found.Node
-      '$LaragonPy = "{0}"' -f $found.Python
-      '$env:Path = "$LaragonNode;$LaragonPy;" + $env:Path'
+      '$ExistingNode = "{0}"' -f $found.Node
+      '$ExistingPy = "{0}"' -f $found.Python
+      '$env:Path = "$ExistingNode;$ExistingPy;" + $env:Path'
     )
     Set-Content -LiteralPath (Join-Path $Tools "env.ps1") -Value $lines
     . (Join-Path $Tools "env.ps1")
@@ -190,4 +222,4 @@ Write-Output "DONE. Next:"
 Write-Output "  1. fill in .env (TELEGRAM_BOT_TOKEN, TELEGRAM_ALLOWED_USER_ID)"
 Write-Output "  2. opencode auth login (or pick a model inside opencode with /models)"
 Write-Output "  3. opencode serve  (then in another terminal: npx @grinev/opencode-telegram-bot@latest)"
-Write-Output "NOTE: if you switch the active Node/Python version inside Laragon, re-run install.bat -Laragon."
+Write-Output "NOTE: if your existing runtimes move (e.g. version switch), re-run install.bat -Existing to re-point env.ps1."

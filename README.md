@@ -36,7 +36,7 @@ install.bat
 ```
 
 That's it. The installer asks one question first (skipped entirely if `tools/` is already filled — it reuses it as-is):
-- `[1] Existing runtimes` — Laragon if found, else system PATH (no download).
+- `[1] Existing runtimes` — Node 20+ and Python already on the machine (PATH, Program Files, version managers, ...) — no download.
 - `[2] Fresh portable download` — Node 22 + Python 3.12 into `tools/` (needs internet).
 - `[3] System packages` — via winget.
 
@@ -44,7 +44,7 @@ Then it installs the **opencode CLI** + prefetches the **Telegram bot**,
 and creates `.env` from the example if missing.
 
 Non-interactive flags (skip the menu, for automation):
-- `install.bat -Laragon` — force Laragon runtimes (fails loudly if missing).
+- `install.bat -Existing` — force existing runtimes (fails loudly if none found).
 - `install.bat -Portable` — force fresh portable download.
 - `install.bat -System` — system-wide via winget, no `tools/`.
 - Linux/macOS: `bash scripts/install.sh`

@@ -21,7 +21,7 @@
   "license": "MIT",
   "scripts": {
     "install-win": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/install.ps1",
-    "install-laragon": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/install.ps1 -Laragon",
+    "install-existing": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/install.ps1 -Existing",
     "install-portable": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/install.ps1 -Portable",
     "serve": "opencode serve"
   }
