@@ -41,12 +41,6 @@ function Find-NodeDir {
   foreach ($d in @("$env:ProgramFiles\nodejs", "${env:ProgramFiles(x86)}\nodejs")) {
     if (Test-Path (Join-Path $d "node.exe")) { return $d }
   }
-  foreach ($base in @("D:\laragon", "C:\laragon")) {
-    $best = Get-ChildItem -LiteralPath (Join-Path $base "bin\nodejs") -Directory -ErrorAction SilentlyContinue |
-      Where-Object { Test-Path (Join-Path $_.FullName "node.exe") } |
-      Sort-Object Name -Descending | Select-Object -First 1
-    if ($best) { return $best.FullName }
-  }
   return $null
 }
 
@@ -57,12 +51,6 @@ function Find-PythonDir {
   }
   foreach ($d in @("$env:ProgramFiles\Python313", "$env:ProgramFiles\Python312", "$env:ProgramFiles\Python311", "$env:LOCALAPPDATA\Programs\Python\Python313", "$env:LOCALAPPDATA\Programs\Python\Python312")) {
     if (Test-Path (Join-Path $d "python.exe")) { return $d }
-  }
-  foreach ($base in @("D:\laragon", "C:\laragon")) {
-    $best = Get-ChildItem -LiteralPath (Join-Path $base "bin\python") -Directory -ErrorAction SilentlyContinue |
-      Where-Object { Test-Path (Join-Path $_.FullName "python.exe") } |
-      Sort-Object Name -Descending | Select-Object -First 1
-    if ($best) { return $best.FullName }
   }
   return $null
 }
