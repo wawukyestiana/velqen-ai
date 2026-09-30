@@ -75,10 +75,15 @@ if (-not (Test-ServePort $Port)) {
 
 # Resolve bot launcher: global shim first, npx fallback (downloads on first use).
 $botCmd = Get-Command opencode-telegram -ErrorAction SilentlyContinue
+$botCode = "unknown"
+$runLog = Join-Path $Root ".opencode\velqen-runs.log"
+$ts0 = Get-Date -Format "yyyy-MM-ddTHH:mm:ss"
+Add-Content -LiteralPath $runLog -Value "[$ts0] bot starting..."
 try {
   Write-Output "-- starting Telegram bot (foreground, Ctrl+C stops everything)..."
   if ($botCmd) { opencode-telegram start }
   else { npx -y @grinev/opencode-telegram-bot@latest start }
+  $botCode = $LASTEXITCODE
 } finally {
   if ($job) {
     Stop-Job $job -ErrorAction SilentlyContinue
@@ -86,3 +91,6 @@ try {
     Write-Output "-- serve stopped."
   }
 }
+$ts1 = Get-Date -Format "yyyy-MM-ddTHH:mm:ss"
+Add-Content -LiteralPath $runLog -Value "[$ts1] bye (bot exit code: $botCode)"
+Write-Output "bye (bot exit code: $botCode)"
