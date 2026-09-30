@@ -6,9 +6,10 @@
 // No dependencies. Never overwrites your files, only fills gaps.
 
 import { spawnSync } from "node:child_process";
-import { existsSync, copyFileSync, readFileSync } from "node:fs";
+import { existsSync, copyFileSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createInterface } from "node:readline/promises";
 
 const GLYPHS = {
   V: ["█   █", "█   █", "█   █", " █ █ ", "  █  "],
@@ -140,9 +141,8 @@ function install() {
   ensureFiles();
   console.log("");
   console.log("DONE. Next:");
-  console.log("  1. fill in .env (TELEGRAM_BOT_TOKEN, TELEGRAM_ALLOWED_USER_ID)");
-  console.log("  2. opencode auth login (or pick a model inside opencode with /models)");
-  console.log("  3. velqen-ai serve  (then: npx @grinev/opencode-telegram-bot@latest)");
+  console.log("  1. velqen-ai setup (Telegram token + model login, interactive)");
+  console.log("  2. velqen-ai serve  (then: npx @grinev/opencode-telegram-bot@latest)");
 }
 
 function serve() {
@@ -150,11 +150,89 @@ function serve() {
   run("opencode", ["serve"], { stdio: "inherit" });
 }
 
+function readEnvLines() {
+  const envPath = join(process.cwd(), ".env");
+  if (!existsSync(envPath)) {
+    const ex = findExample(".env");
+    if (!ex) throw new Error("no .env or template found. Run this inside your velqen-ai folder.");
+    copyFileSync(ex, envPath);
+    console.log(".env created from example.");
+  }
+  return { envPath, lines: readFileSync(envPath, "utf8").split("\n") };
+}
+
+function envGet(lines, key) {
+  const l = lines.find((x) => x.startsWith(key + "="));
+  return l ? l.slice(key.length + 1).trim() : "";
+}
+
+function envSet(lines, key, value) {
+  const i = lines.findIndex((x) => x.startsWith(key + "="));
+  if (i >= 0) lines[i] = key + "=" + value;
+  else lines.push(key + "=" + value);
+}
+
+async function setup() {
+  showBanner();
+  const { envPath, lines } = readEnvLines();
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  let alive = true;
+  rl.on("close", () => { alive = false; });
+  // askRaw resolves null when stdin dies (EOF/pipe closed) instead of hanging.
+  const askRaw = (q) => {
+    if (!alive) return Promise.resolve(null);
+    return Promise.race([
+      rl.question(q),
+      new Promise((res) => rl.once("close", () => res(null))),
+    ]);
+  };
+  try {
+    const ask = async (question, current, secret) => {
+      const shown = current ? (secret ? current.slice(0, 6) + "..." : current) : "(empty)";
+      const ans = String(await askRaw(question + " [" + shown + "]: ") || "").trim();
+      return ans || current; // empty (or dead stdin) keeps existing
+    };
+
+    console.log("Telegram bot (get the token from @BotFather, your ID from @userinfobot).");
+    console.log("Empty answer keeps the current value.");
+    const token = await ask("Bot token", envGet(lines, "TELEGRAM_BOT_TOKEN"), true);
+    if (token && !token.includes(":")) {
+      console.warn("warning: that does not look like a bot token (expected digits:secret). Saved anyway.");
+    }
+    const userId = await ask("Allowed user ID", envGet(lines, "TELEGRAM_ALLOWED_USER_ID"), false);
+    if (userId && !/^[0-9]+$/.test(userId)) {
+      console.warn("warning: user ID is usually digits only. Saved anyway.");
+    }
+    envSet(lines, "TELEGRAM_BOT_TOKEN", token);
+    envSet(lines, "TELEGRAM_ALLOWED_USER_ID", userId);
+    writeFileSync(envPath, lines.join("\n"));
+    console.log("saved to .env (never committed to git).");
+
+    const loginDefault = process.stdin.isTTY ? "Y" : "n";
+    const rawLogin = await askRaw("Login AI model now via opencode? [Y/n] (default " + loginDefault + "): ");
+    const login = String(rawLogin || "").trim() || loginDefault;
+    if (/^y/i.test(login)) {
+      if (!versionOf("opencode")) {
+        console.log("opencode not found. Run `velqen-ai install` first, then `velqen-ai setup` again.");
+      } else {
+        run("opencode", ["auth", "login"], { stdio: "inherit" });
+      }
+    } else {
+      console.log("skipped. Later: `opencode auth login` (or pick a model inside opencode with /models).");
+    }
+  } finally {
+    rl.close();
+  }
+  console.log("");
+  console.log("DONE. Next: velqen-ai serve  (then: npx @grinev/opencode-telegram-bot@latest)");
+}
+
 function help() {
   showBanner();
   console.log("Usage: velqen-ai <command>");
   console.log("  velqen-ai doctor   check runtimes, opencode, and local files");
   console.log("  velqen-ai install  auto-install opencode if missing + scaffold .env");
+  console.log("  velqen-ai setup    interactive setup: Telegram token + model login");
   console.log("  velqen-ai serve    run `opencode serve`");
 }
 
@@ -162,6 +240,7 @@ try {
   const cmd = (process.argv[2] || "help").toLowerCase();
   if (cmd === "doctor") doctor();
   else if (cmd === "install") install();
+  else if (cmd === "setup") await setup();
   else if (cmd === "serve") serve();
   else help();
 } catch (e) {

@@ -6,7 +6,8 @@
   "main": "./plugin/velqen-ai.js",
   "exports": "./plugin/velqen-ai.js",
   "bin": {
-    "velqen-ai": "./bin/velqen-ai.js"
+    "velqen-ai": "./bin/velqen-ai.js",
+    "velqen": "./bin/velqen-ai.js"
   },
   "files": ["bin/", "plugin/", ".opencode/", "README.md", "LICENSE", "CHANGELOG.md"],
   "repository": {
