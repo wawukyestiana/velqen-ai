@@ -82,6 +82,7 @@ Runtimes (`tools/`), Telegram wiring and schedules stay your own business — se
    velqen serve
    ```
    - Fails fast if the Telegram token is empty (run `velqen setup` first).
+   - Loads bot token, user ID, server URL and default free model from the repo `.env` into the bot automatically. No second bot wizard or duplicate token entry.
    - Starts `opencode serve` in the background, waits for the port, then runs the Telegram bot in front. Ctrl+C stops both.
    - `serve-all.bat` is the Windows fallback if `velqen` is not yet on PATH.
 4. From your phone, chat with your bot. It answers via the `velqen` agent.

@@ -39,6 +39,21 @@ if ([string]::IsNullOrWhiteSpace($botToken)) {
   throw "TELEGRAM_BOT_TOKEN is empty in $envFile. Run velqen-ai setup first (or fill .env), then re-run."
 }
 
+# Load every KEY=VALUE from the Velqen repo .env into THIS process.
+# The bot gives process environment priority, so it never opens its own wizard
+# and never makes the user enter the same Telegram token twice.
+Get-Content -LiteralPath $envFile | ForEach-Object {
+  if ($_ -match "^\s*([^#=]+?)\s*=\s*(.*)\s*$") {
+    $key = $matches[1].Trim()
+    $value = $matches[2].Trim()
+    [System.Environment]::SetEnvironmentVariable($key, $value, "Process")
+  }
+}
+$env:OPENCODE_API_URL = "http://127.0.0.1:$Port"
+if ([string]::IsNullOrWhiteSpace($env:OPENCODE_MODEL_PROVIDER)) { $env:OPENCODE_MODEL_PROVIDER = "opencode" }
+if ([string]::IsNullOrWhiteSpace($env:OPENCODE_MODEL_ID)) { $env:OPENCODE_MODEL_ID = "big-pickle" }
+Write-Output "-- Telegram config loaded from repo .env (no bot wizard)."
+
 $job = $null
 if (-not (Test-ServePort $Port)) {
   Write-Output "-- starting opencode serve --port $Port (background)..."
