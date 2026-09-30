@@ -8,9 +8,9 @@ You need NOTHING except Windows + internet. Pick one line:
 
 - **Zero-click (recommended):** paste this once, it installs Git if missing, clones, and runs the installer by itself:
   ```
-  powershell -c "irm https://raw.githubusercontent.com/<user>/velqen-ai/main/bootstrap.ps1 | iex"
+  powershell -c "irm https://raw.githubusercontent.com/wawukyestiana/velqen-ai/main/bootstrap.ps1 | iex"
   ```
-  (Already inside PowerShell? Drop the wrapper: `irm https://raw.githubusercontent.com/<user>/velqen-ai/main/bootstrap.ps1 | iex`.)
+  (Already inside PowerShell? Drop the wrapper: `irm https://raw.githubusercontent.com/wawukyestiana/velqen-ai/main/bootstrap.ps1 | iex`.)
   (Runs code from your own repo over HTTPS — same trust as any `curl | bash` installer. Plain `git clone` can never auto-run code by design, otherwise cloning a malicious repo would hack your machine.)
 - **Without git:** download this repo as ZIP from GitHub (Code → Download ZIP), extract, double-click `install.bat`. Git is not needed at all for this path.
 - **With git:** the only prerequisite is Git itself (`winget install Git.Git`), then `git clone` + `install.bat`.
@@ -30,7 +30,7 @@ velqen-ai install   # auto-installs opencode if missing, scaffolds .env
 ## Install on a new machine (full, 1 command)
 
 ```bat
-git clone https://github.com/<user>/velqen-ai.git
+git clone https://github.com/wawukyestiana/velqen-ai.git
 cd velqen-ai
 install.bat
 ```
@@ -107,7 +107,7 @@ tools/ (filled by the installer, never committed)
 git init
 git add .
 git commit -m "Velqen AI initial"
-git remote add origin https://github.com/<user>/velqen-ai.git
+git remote add origin https://github.com/wawukyestiana/velqen-ai.git
 git push -u origin main
 ```
 
@@ -115,7 +115,7 @@ Others then just `git clone ...` + `install.bat`. Never commit `.env` / tokens.
 
 ## Publish the npm package
 
-One-time: replace `<user>` in `package.json`/links, put your name in `LICENSE`, create an npm account. Then:
+One-time: replace `wawukyestiana` in `package.json`/links, put your name in `LICENSE`, create an npm account. Then:
 
 ```
 npm login

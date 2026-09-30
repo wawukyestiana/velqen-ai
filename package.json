@@ -11,11 +11,11 @@
   "files": ["bin/", "plugin/", ".opencode/", "README.md", "LICENSE", "CHANGELOG.md"],
   "repository": {
     "type": "git",
-    "url": "https://github.com/<user>/velqen-ai.git"
+    "url": "https://github.com/wawukyestiana/velqen-ai.git"
   },
-  "homepage": "https://github.com/<user>/velqen-ai#readme",
+  "homepage": "https://github.com/wawukyestiana/velqen-ai#readme",
   "bugs": {
-    "url": "https://github.com/<user>/velqen-ai/issues"
+    "url": "https://github.com/wawukyestiana/velqen-ai/issues"
   },
   "keywords": ["velqen", "opencode", "opencode-plugin", "ai-agent", "assistant", "telegram", "scheduler"],
   "license": "MIT",
