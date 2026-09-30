@@ -77,15 +77,14 @@ Runtimes (`tools/`), Telegram wiring and schedules stay your own business — se
 
 1. Run `velqen-ai setup` — interactive CLI wizard: Telegram token + user ID (from `@BotFather` / `@userinfobot`) + model choice (Zen free tier, own provider key, or local Ollama) with one-key global default. No manual file editing.
 2. Log in a model (`opencode auth login`, any model, e.g. Zen or your favorite provider). Switch anytime inside opencode with `/models`.
-3. Start the backend:
+3. Run everything in ONE terminal:
    ```
-   opencode serve
+   velqen serve
    ```
-4. In another terminal, connect Telegram:
-   ```
-   npx @grinev/opencode-telegram-bot@latest
-   ```
-5. From your phone, chat with your bot. It answers via the `velqen` agent.
+   - Fails fast if the Telegram token is empty (run `velqen setup` first).
+   - Starts `opencode serve` in the background, waits for the port, then runs the Telegram bot in front. Ctrl+C stops both.
+   - `serve-all.bat` is the Windows fallback if `velqen` is not yet on PATH.
+4. From your phone, chat with your bot. It answers via the `velqen` agent.
 
 ## Daily use
 

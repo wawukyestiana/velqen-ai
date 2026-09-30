@@ -20,4 +20,5 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Unified interactive `velqen-ai` menu (banner once, one CLI for setup/serve/doctor/install).
 - `install.bat` hands off to the unified CLI when Node exists (runtime menu only on node-less machines); CLI also ensures Git + user PATH.
 - Runtime path picking moved into `velqen-ai install` (shows current paths, validates, writes `tools/env.ps1`).
+- `velqen serve` one-terminal launcher (serve in background + bot in front, pre-flight token check).
 - `velqen-ai setup` picks a free model as global default (writes `~/.config`, never the repo).

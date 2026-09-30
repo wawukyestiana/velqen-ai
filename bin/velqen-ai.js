@@ -275,6 +275,12 @@ async function install() {
 
 function serve() {
   if (!versionOf("opencode")) throw new Error("opencode not found. Run `velqen-ai install` first.");
+  const launcher = join(PKG_ROOT, "scripts", "serve-all.ps1");
+  if (process.platform === "win32" && existsSync(launcher)) {
+    run("powershell", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", launcher], { stdio: "inherit" });
+    return;
+  }
+  console.log("Starting OpenCode server only (Telegram launcher is available in the full Windows repository install).");
   run("opencode", ["serve"], { stdio: "inherit" });
 }
 
@@ -440,7 +446,7 @@ function usage() {
   console.log("  velqen-ai doctor   check runtimes, opencode, and local files");
   console.log("  velqen-ai install  auto-install opencode if missing + scaffold .env");
   console.log("  velqen-ai setup    interactive setup: Telegram token + model choice");
-  console.log("  velqen-ai serve    run `opencode serve`");
+  console.log("  velqen-ai serve    start OpenCode + Telegram bot in one terminal");
 }
 
 function help() {
