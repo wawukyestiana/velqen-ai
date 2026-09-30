@@ -42,6 +42,8 @@ That's it. If Node 20+ is already on the machine, `install.bat` hands over strai
 - `[2] Fresh portable download` — Node 22 + Python 3.12 into `tools/` (needs internet).
 - `[3] System packages` — via winget.
 
+Path picking (which Node/Python folders) also lives in the CLI: `velqen-ai install` shows the paths in use and offers to change them. The `.ps1` menu stays only for machines without Node.
+
 Then it installs the **opencode CLI** + prefetches the **Telegram bot**,
 and creates `.env` from the example if missing.
 
@@ -73,7 +75,7 @@ Runtimes (`tools/`), Telegram wiring and schedules stay your own business — se
 
 ## One-time setup (5 minutes)
 
-1. Run `velqen-ai setup` — interactive CLI wizard: Telegram token + user ID (from `@BotFather` / `@userinfobot`) + model choice (Zen free tier, own provider key, or local Ollama). No manual file editing.
+1. Run `velqen-ai setup` — interactive CLI wizard: Telegram token + user ID (from `@BotFather` / `@userinfobot`) + model choice (Zen free tier, own provider key, or local Ollama) with one-key global default. No manual file editing.
 2. Log in a model (`opencode auth login`, any model, e.g. Zen or your favorite provider). Switch anytime inside opencode with `/models`.
 3. Start the backend:
    ```

@@ -6,7 +6,7 @@
 // No dependencies. Never overwrites your files, only fills gaps.
 
 import { spawnSync } from "node:child_process";
-import { existsSync, copyFileSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, copyFileSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createInterface } from "node:readline/promises";
@@ -164,6 +164,66 @@ function ensurePath() {
   else console.warn("warning: could not update PATH. Add manually: " + binDir);
 }
 
+function which(cmd) {
+  try {
+    const probe = process.platform === "win32" ? "where" : "which";
+    const r = run(probe, [cmd], { stdio: "pipe" });
+    if (r.status === 0 && r.stdout) return r.stdout.trim().split(/\r?\n/)[0].trim();
+  } catch {
+    // not found
+  }
+  return null;
+}
+
+function checkNodeDir(dir) {
+  const exe = join(dir, process.platform === "win32" ? "node.exe" : "node");
+  if (!existsSync(exe)) return null;
+  const v = versionOf(winQuote(exe), ["-v"]);
+  const m = v ? v.match(/^v(\d+)\./) : null;
+  return m && parseInt(m[1], 10) >= 20 ? v : "too-old";
+}
+
+async function offerRuntimePaths() {
+  if (!process.stdin.isTTY) return;
+  if (!existsSync(join(process.cwd(), "tools"))) return;
+  console.log("");
+  console.log("Runtime paths in use:");
+  console.log("  node:   " + process.execPath);
+  console.log("  python: " + (which("python") || which("python3") || "(not found)"));
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  let alive = true;
+  rl.on("close", () => { alive = false; });
+  const askRaw = (q) => alive
+    ? Promise.race([rl.question(q), new Promise((res) => rl.once("close", () => res(null)))])
+    : Promise.resolve(null);
+  try {
+    const yn = String(await askRaw("Use different paths? [y/N] (default N): ") || "").trim().toLowerCase();
+    if (yn !== "y" && yn !== "yes") return;
+    const curNode = dirname(process.execPath);
+    const nd = String(await askRaw("Node folder (Enter keeps current): ") || "").trim();
+    const pd = String(await askRaw("Python folder (Enter to skip): ") || "").trim();
+    let nodeDir = curNode;
+    let pyDir = null;
+    if (nd) {
+      const chk = checkNodeDir(nd);
+      if (!chk) console.log("node executable not found there, keeping current.");
+      else if (chk === "too-old") console.log("that Node is older than v20, keeping current.");
+      else { nodeDir = nd; console.log("node: " + chk); }
+    }
+    if (pd) {
+      const pexe = join(pd, process.platform === "win32" ? "python.exe" : "python3");
+      if (!existsSync(pexe)) console.log("python executable not found there, skipping python change.");
+      else { pyDir = pd; console.log("python: " + (versionOf(winQuote(pexe), ["--version"]) || "ok")); }
+    }
+    if (nodeDir === curNode && !pyDir) { console.log("no changes."); return; }
+    const parts = pyDir ? [nodeDir, pyDir] : [nodeDir];
+    writeFileSync(join(process.cwd(), "tools", "env.ps1"), '$env:Path = "' + parts.join(";") + ';" + $env:Path\n');
+    console.log("saved to tools/env.ps1 (restart the terminal to apply).");
+  } finally {
+    rl.close();
+  }
+}
+
 function ensureFiles() {
   for (const name of [".env", "USER.md", "MEMORY.md"]) {
     const target = join(process.cwd(), name);
@@ -193,7 +253,7 @@ function doctor() {
   console.log("MEMORY.md: " + (existsSync(join(process.cwd(), "MEMORY.md")) ? "present" : "missing"));
 }
 
-function install() {
+async function install() {
   const major = parseInt(process.version.slice(1), 10);
   if (major < 20) {
     throw new Error("Node " + process.version + " too old (needs 20+). No Node at all? Clone the repo and run install.bat for portable runtimes.");
@@ -201,6 +261,7 @@ function install() {
   console.log("node: " + process.version + " (" + process.execPath + ")");
   const py = versionOf("python") || versionOf("python3");
   console.log("python: " + (py || "not on PATH (some tools need it)"));
+  await offerRuntimePaths();
   ensureGit();
   ensureOpencode();
   prefetchBot();
@@ -237,6 +298,54 @@ function envSet(lines, key, value) {
   const i = lines.findIndex((x) => x.startsWith(key + "="));
   if (i >= 0) lines[i] = key + "=" + value;
   else lines.push(key + "=" + value);
+}
+
+// Writes the picked model as the personal default into the GLOBAL opencode
+// config (~/.config), never into the repo. Repo files stay shareable.
+function setGlobalModel(id) {
+  const home = process.env.USERPROFILE || process.env.HOME || "";
+  if (!home) {
+    console.log("cannot locate home dir; pick `" + id + "` manually in /models.");
+    return;
+  }
+  const cfgPath = join(home, ".config", "opencode", "opencode.json");
+  let cfg = null;
+  try {
+    cfg = JSON.parse(readFileSync(cfgPath, "utf8"));
+  } catch {
+    cfg = null;
+  }
+  if (!cfg || typeof cfg !== "object" || Array.isArray(cfg)) {
+    console.log("Global config unreadable (it may use comments). Set the default manually: pick `" + id + "` in /models.");
+    console.log("Config file: " + cfgPath);
+    return;
+  }
+  cfg.model = id;
+  try {
+    mkdirSync(dirname(cfgPath), { recursive: true });
+    writeFileSync(cfgPath, JSON.stringify(cfg, null, 2) + "\n");
+    console.log("Default model set to " + id + " (shows selected in /models).");
+  } catch (e) {
+    console.log("Could not write global config: " + (e && e.message ? e.message : e));
+  }
+}
+
+async function offerFreePick(askRaw) {
+  const free = listFreeModels();
+  if (!free.length) {
+    console.log("No free models visible. Browse inside opencode with /models — availability depends on your provider.");
+    return;
+  }
+  console.log("Free models on your account ($0 usage):");
+  free.forEach((m, i) => console.log("  [" + (i + 1) + "] " + m));
+  const rawPick = await askRaw("Pick a number to set as default (Enter to skip): ");
+  if (rawPick === null) return;
+  const n = parseInt(String(rawPick).trim(), 10);
+  if (!n || n < 1 || n > free.length) {
+    console.log("skipped.");
+    return;
+  }
+  setGlobalModel(free[n - 1]);
 }
 
 async function setup() {
@@ -285,7 +394,7 @@ async function setup() {
     console.log("saved to .env (never committed to git).");
 
     console.log("");
-    console.log("AI model (a free built-in tier exists, no key needed to start):");
+    console.log("AI model (free models exist, one login unlocks them):");
     console.log("  [1] Free models (one login, $0 usage)");
     console.log("  [2] My own provider key (Anthropic / OpenAI / ...)");
     console.log("  [3] Local model via Ollama (private, needs download)");
@@ -296,19 +405,11 @@ async function setup() {
       if (!versionOf("opencode")) {
         console.log("opencode not found. Run `velqen-ai install` first, then `velqen-ai setup` again.");
       } else {
-        let free = listFreeModels();
-        if (!free.length) {
+        if (!listFreeModels().length) {
           console.log("No free models visible — login first (pick `opencode`).");
           run("opencode", ["auth", "login"], { stdio: "inherit" });
-          free = listFreeModels();
         }
-        if (free.length) {
-          console.log("Free models on your account ($0 usage):");
-          free.forEach((m, i) => console.log("  [" + (i + 1) + "] " + m));
-          console.log("Pick one inside opencode with /models (exact name as above).");
-        } else {
-          console.log("Still none. Browse inside opencode with /models — availability depends on your provider.");
-        }
+        await offerFreePick(askRaw);
       }
     } else if (mchoice === "2") {
       if (!versionOf("opencode")) {
@@ -316,6 +417,7 @@ async function setup() {
       } else {
         console.log("Launching login — pick your provider and paste the key.");
         run("opencode", ["auth", "login"], { stdio: "inherit" });
+        await offerFreePick(askRaw);
       }
     } else if (mchoice === "3") {
       if (versionOf("ollama")) {
@@ -376,7 +478,7 @@ async function mainMenu() {
     if (c === "1") await setup();
     else if (c === "2") serve();
     else if (c === "3") doctor();
-    else if (c === "4") install();
+    else if (c === "4") await install();
     else { console.log("Unknown choice, try 1-5."); continue; }
     const rl2 = createInterface({ input: process.stdin, output: process.stdout });
     let alive2 = true;
@@ -391,7 +493,7 @@ try {
   const cmd = (arg || "help").toLowerCase();
   if (!arg && process.stdin.isTTY && process.stdout.isTTY) await mainMenu();
   else if (cmd === "doctor") doctor();
-  else if (cmd === "install") install();
+  else if (cmd === "install") await install();
   else if (cmd === "setup") await setup();
   else if (cmd === "serve") serve();
   else help();
