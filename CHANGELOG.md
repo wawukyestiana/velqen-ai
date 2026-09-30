@@ -18,4 +18,5 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Approvals disabled by default (single-user); scheduled runs use `opencode run --auto`; Git auto-installs when missing.
 - VELQEN banner across CLI, installer, and bootstrap entry points.
 - Unified interactive `velqen-ai` menu (banner once, one CLI for setup/serve/doctor/install).
+- `install.bat` hands off to the unified CLI when Node exists (runtime menu only on node-less machines); CLI also ensures Git + user PATH.
 - `velqen-ai setup` wizard (Telegram token + model choice: Zen free / own key / Ollama; interactive terminal only, never overwrites).

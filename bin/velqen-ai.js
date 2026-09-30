@@ -112,6 +112,58 @@ function prefetchBot() {
   }
 }
 
+function winQuote(s) {
+  return /\s/.test(s) ? '"' + s + '"' : s;
+}
+
+function ensureGit() {
+  const g = versionOf("git");
+  if (g) {
+    console.log("git: " + g);
+    return;
+  }
+  if (process.platform !== "win32") {
+    console.warn("warning: git not found. Install it for cloning (e.g. `sudo apt install git`).");
+    return;
+  }
+  console.log("git not found, installing via winget...");
+  run("winget", ["install", "--silent", "Git.Git"], { stdio: "inherit" });
+  const g2 = versionOf("git");
+  if (g2) console.log("git: " + g2);
+  else console.warn("warning: git still not visible. Restart the terminal; if still missing, install Git manually.");
+}
+
+function ensurePath() {
+  if (process.platform !== "win32") return;
+  if (!existsSync(join(PKG_ROOT, "install.bat"))) return; // npm-global install: npm owns bin
+  const binDir = join(PKG_ROOT, "bin");
+  let cur = "";
+  try {
+    const r = run("reg", ["query", "HKCU\\Environment", "/v", "Path"], { stdio: "pipe" });
+    const line = (r.stdout || "").split("\n").find((x) => x.includes("REG_EXPAND_SZ") || x.includes("REG_SZ"));
+    if (line) {
+      const m = line.match(/REG_(?:EXPAND_)?SZ\s+(.*)$/);
+      if (m) cur = m[1].trim();
+    }
+  } catch {
+    // registry unreadable, fall through to manual note
+  }
+  // NEVER write when the current value is unreadable - an empty read must not
+  // wipe the user's PATH (lesson learned 2026-09-30).
+  if (!cur) {
+    console.warn("warning: could not read user PATH, skipping PATH update (nothing overwritten). Add manually: " + binDir);
+    return;
+  }
+  if (cur.toLowerCase().split(";").includes(binDir.toLowerCase())) {
+    console.log("already on user PATH: " + binDir);
+    return;
+  }
+  const next = cur ? cur.replace(/;$/, "") + ";" + binDir : binDir;
+  const r = run("reg", ["add", "HKCU\\Environment", "/v", "Path", "/t", "REG_EXPAND_SZ", "/d", next, "/f"].map(winQuote), { stdio: "pipe" });
+  if (r.status === 0) console.log("added to user PATH (open a NEW terminal to use it): " + binDir);
+  else console.warn("warning: could not update PATH. Add manually: " + binDir);
+}
+
 function ensureFiles() {
   for (const name of [".env", "USER.md", "MEMORY.md"]) {
     const target = join(process.cwd(), name);
@@ -146,12 +198,14 @@ function install() {
   if (major < 20) {
     throw new Error("Node " + process.version + " too old (needs 20+). No Node at all? Clone the repo and run install.bat for portable runtimes.");
   }
-  if (!versionOf("python") && !versionOf("python3") && !existsSync(join(process.cwd(), "tools", "python", "python.exe"))) {
-    console.warn("warning: no python found (some tools need it). Continuing anyway.");
-  }
+  console.log("node: " + process.version + " (" + process.execPath + ")");
+  const py = versionOf("python") || versionOf("python3");
+  console.log("python: " + (py || "not on PATH (some tools need it)"));
+  ensureGit();
   ensureOpencode();
   prefetchBot();
   ensureFiles();
+  ensurePath();
   console.log("");
   console.log("DONE. Next:");
   console.log("  1. velqen-ai setup (Telegram token + model login, interactive)");

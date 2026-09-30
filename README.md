@@ -37,7 +37,7 @@ cd velqen-ai
 install.bat
 ```
 
-That's it. The installer asks one question first (skipped entirely if `tools/` is already filled — it reuses it as-is):
+That's it. If Node 20+ is already on the machine, `install.bat` hands over straight to the unified `velqen-ai` CLI — one screen, no separate menus. Only machines without Node see the runtime question first:
 - `[1] Existing runtimes` — Node 20+ and Python already on the machine (PATH, Program Files, version managers, ...) — no download.
 - `[2] Fresh portable download` — Node 22 + Python 3.12 into `tools/` (needs internet).
 - `[3] System packages` — via winget.

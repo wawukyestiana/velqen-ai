@@ -70,6 +70,24 @@ Write-Output "  #    #####  #####      #  #####  #   #"
 Write-Output "self-improving personal assistant for OpenCode"
 Write-Output "($Root)"
 
+# --- hand off to the unified node CLI when node already works ---
+# One CLI experience: this script then only bootstraps runtimes on node-less
+# machines. Flags (-Portable/-System/-Existing) always stay in this script.
+$nodeOk = $false
+try {
+  $nv = (node -v 2>$null).Trim()
+  if ($nv -match "^v(\d+)\.") { if ([int]$Matches[1] -ge 20) { $nodeOk = $true } }
+} catch { }
+if ($nodeOk -and -not $Portable -and -not $System -and -not $Existing) {
+  Write-Output "-- Node found, handing over to the unified CLI..."
+  $cli = Join-Path $Root "bin\velqen-ai.js"
+  if (Test-Path $cli) {
+    & node $cli install
+    exit $LASTEXITCODE
+  }
+  Write-Warning "CLI not found at $cli, continuing with built-in flow."
+}
+
 if ($System) {
   Write-Output "-- System mode: checking winget..."
   if (Have "winget") {
@@ -214,12 +232,14 @@ if (-not (Test-Path "$Root\MEMORY.md")) { Copy-Item "$Root\MEMORY.example.md" "$
 Write-Output "-- USER.md / MEMORY.md ready (local-only, fill in your name)."
 
 # --- put velqen-ai on PATH (repo bin shim, so `velqen-ai` works anywhere) ---
+# NEVER write when the current value is unreadable - an empty read must not
+# wipe the user's PATH (lesson learned 2026-09-30).
 $binDir = Join-Path $Root "bin"
 $u = [System.Environment]::GetEnvironmentVariable("Path", "User")
-$parts = @()
-if (-not [string]::IsNullOrEmpty($u)) { $parts = $u -split ";" }
-if ($parts -notcontains $binDir) {
-  $newPath = ((@($parts) + @($binDir)) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) -join ";"
+if ([string]::IsNullOrEmpty($u)) {
+  Write-Warning "User PATH unreadable, skipping PATH update (nothing overwritten). Add manually: $binDir"
+} elseif (($u -split ";") -notcontains $binDir) {
+  $newPath = ((@(($u -split ";")) + @($binDir)) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) -join ";"
   [System.Environment]::SetEnvironmentVariable("Path", $newPath, "User")
   Write-Output "-- added to user PATH (open a NEW terminal to use it): $binDir"
 } else {
