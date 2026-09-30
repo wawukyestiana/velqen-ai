@@ -56,6 +56,21 @@ function versionOf(cmd, verArgs = ["--version"]) {
   return null;
 }
 
+// Free models are the *-free ones (plus known free IDs like big-pickle).
+// They still need a one-time provider login - there is no usable model with zero auth.
+function listFreeModels() {
+  try {
+    const r = run("opencode", ["models"], { stdio: "pipe" });
+    if (r.status !== 0 || !r.stdout) return [];
+    return r.stdout
+      .split("\n")
+      .map((x) => x.trim())
+      .filter((x) => x && (/free$/i.test(x) || /big-pickle$/i.test(x)));
+  } catch {
+    return [];
+  }
+}
+
 function bundledTool(rel) {
   const p = join(process.cwd(), rel);
   if (existsSync(p)) return "bundled at " + p + " (load tools/env.ps1)";
@@ -173,7 +188,15 @@ function envSet(lines, key, value) {
 }
 
 async function setup() {
+  if (process.stdout.isTTY) console.clear();
   showBanner();
+  if (!process.stdin.isTTY) {
+    // Piped/redirected stdin only ever delivers the first answer on some
+    // platforms, which would half-apply settings. Refuse instead.
+    console.log("setup needs an interactive terminal. Run `velqen-ai setup` in a normal terminal window.");
+    console.log("Manual route: copy .env.example to .env, fill TELEGRAM_BOT_TOKEN + TELEGRAM_ALLOWED_USER_ID, then `opencode auth login`.");
+    return;
+  }
   const { envPath, lines } = readEnvLines();
   const rl = createInterface({ input: process.stdin, output: process.stdout });
   let alive = true;
@@ -208,14 +231,44 @@ async function setup() {
     writeFileSync(envPath, lines.join("\n"));
     console.log("saved to .env (never committed to git).");
 
-    const loginDefault = process.stdin.isTTY ? "Y" : "n";
-    const rawLogin = await askRaw("Login AI model now via opencode? [Y/n] (default " + loginDefault + "): ");
-    const login = String(rawLogin || "").trim() || loginDefault;
-    if (/^y/i.test(login)) {
+    console.log("");
+    console.log("AI model (a free built-in tier exists, no key needed to start):");
+    console.log("  [1] Free models (one login, $0 usage)");
+    console.log("  [2] My own provider key (Anthropic / OpenAI / ...)");
+    console.log("  [3] Local model via Ollama (private, needs download)");
+    console.log("  [4] Skip for now");
+    const rawModel = await askRaw("Choose model [1/2/3/4] (default 1): ");
+    const mchoice = rawModel === null ? "4" : (String(rawModel).trim() || "1");
+    if (mchoice === "1") {
       if (!versionOf("opencode")) {
         console.log("opencode not found. Run `velqen-ai install` first, then `velqen-ai setup` again.");
       } else {
+        let free = listFreeModels();
+        if (!free.length) {
+          console.log("No free models visible — login first (pick `opencode`).");
+          run("opencode", ["auth", "login"], { stdio: "inherit" });
+          free = listFreeModels();
+        }
+        if (free.length) {
+          console.log("Free models on your account ($0 usage):");
+          free.forEach((m, i) => console.log("  [" + (i + 1) + "] " + m));
+          console.log("Pick one inside opencode with /models (exact name as above).");
+        } else {
+          console.log("Still none. Browse inside opencode with /models — availability depends on your provider.");
+        }
+      }
+    } else if (mchoice === "2") {
+      if (!versionOf("opencode")) {
+        console.log("opencode not found. Run `velqen-ai install` first, then `velqen-ai setup` again.");
+      } else {
+        console.log("Launching login — pick your provider and paste the key.");
         run("opencode", ["auth", "login"], { stdio: "inherit" });
+      }
+    } else if (mchoice === "3") {
+      if (versionOf("ollama")) {
+        console.log("Ollama found. Pull a model, e.g. `ollama pull qwen3:8b`, then pick it inside opencode with /models.");
+      } else {
+        console.log("Ollama not found. Install it (`winget install Ollama.Ollama` or https://ollama.com), then `ollama pull qwen3:8b`, then pick it inside opencode with /models.");
       }
     } else {
       console.log("skipped. Later: `opencode auth login` (or pick a model inside opencode with /models).");

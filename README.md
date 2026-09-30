@@ -73,7 +73,7 @@ Runtimes (`tools/`), Telegram wiring and schedules stay your own business — se
 
 ## One-time setup (5 minutes)
 
-1. Run `velqen-ai setup` — interactive CLI wizard: Telegram token + user ID (from `@BotFather` / `@userinfobot`) + model login. No manual file editing.
+1. Run `velqen-ai setup` — interactive CLI wizard: Telegram token + user ID (from `@BotFather` / `@userinfobot`) + model choice (Zen free tier, own provider key, or local Ollama). No manual file editing.
 2. Log in a model (`opencode auth login`, any model, e.g. Zen or your favorite provider). Switch anytime inside opencode with `/models`.
 3. Start the backend:
    ```
