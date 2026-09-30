@@ -5,9 +5,8 @@ Paste once on a fresh Windows machine (internet, nothing else required):
 
   powershell -c "irm https://raw.githubusercontent.com/wawukyestiana/velqen-ai/main/bootstrap.ps1 | iex"
 
-(Already inside PowerShell? Drop the wrapper: irm https://raw.githubusercontent.com/wawukyestiana/velqen-ai/main/bootstrap.ps1 | iex)
-
-It installs Git (via winget) when missing, clones the repo, and runs install.bat.
+It installs Git (via winget) when missing, clones the repo, and runs the
+installer from the cloned copy (never from PATH aliases of old repos).
 Optional installer flags: -InstallerArgs "-Portable" (or "-Existing", "-System").
 
 Trust note: this runs code from YOUR OWN repo over HTTPS - the same trust
@@ -37,9 +36,18 @@ if (-not (Test-Path (Join-Path $Dest ".git"))) {
   Write-Output "-- repo already here, pulling latest..."
   git -C $Dest pull --ff-only
 }
-Write-Output "-- launching installer..."
+
+# Always use THIS clone's installer - never resolve via PATH aliases.
+Write-Output "-- launching installer from cloned repo..."
+$installer = Join-Path $Dest "scripts\install.ps1"
+if (-not (Test-Path $installer)) { throw "Installer not found: $installer" }
 if ([string]::IsNullOrWhiteSpace($InstallerArgs)) {
-  & (Join-Path $Dest "install.bat")
+  & powershell -NoProfile -ExecutionPolicy Bypass -File $installer
 } else {
-  & (Join-Path $Dest "install.bat") $InstallerArgs.Split(" ", [System.StringSplitOptions]::RemoveEmptyEntries)
+  & powershell -NoProfile -ExecutionPolicy Bypass -File $installer $InstallerArgs.Split(" ", [System.StringSplitOptions]::RemoveEmptyEntries)
 }
+if ($LASTEXITCODE -ne 0) { throw "Install failed (exit $LASTEXITCODE). Read the output above." }
+Write-Output ""
+Write-Output "BOOTSTRAP COMPLETE. Open a NEW terminal, then:"
+Write-Output "  velqen setup   <- fill Telegram token + pick model"
+Write-Output "  velqen serve   <- start everything"
