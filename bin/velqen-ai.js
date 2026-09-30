@@ -130,7 +130,6 @@ function ensureFiles() {
 }
 
 function doctor() {
-  showBanner();
   const major = parseInt(process.version.slice(1), 10);
   console.log("node: " + process.version + (major >= 20 ? " (ok)" : " (NEEDS >= 20, use install.bat for portable node)"));
   console.log("npm: " + (versionOf("npm") || "MISSING"));
@@ -143,7 +142,6 @@ function doctor() {
 }
 
 function install() {
-  showBanner();
   const major = parseInt(process.version.slice(1), 10);
   if (major < 20) {
     throw new Error("Node " + process.version + " too old (needs 20+). No Node at all? Clone the repo and run install.bat for portable runtimes.");
@@ -189,7 +187,8 @@ function envSet(lines, key, value) {
 
 async function setup() {
   if (process.stdout.isTTY) console.clear();
-  showBanner();
+  console.log("Velqen AI setup");
+  console.log("");
   if (!process.stdin.isTTY) {
     // Piped/redirected stdin only ever delivers the first answer on some
     // platforms, which would half-apply settings. Refuse instead.
@@ -280,18 +279,64 @@ async function setup() {
   console.log("DONE. Next: velqen-ai serve  (then: npx @grinev/opencode-telegram-bot@latest)");
 }
 
-function help() {
-  showBanner();
+function usage() {
   console.log("Usage: velqen-ai <command>");
   console.log("  velqen-ai doctor   check runtimes, opencode, and local files");
   console.log("  velqen-ai install  auto-install opencode if missing + scaffold .env");
-  console.log("  velqen-ai setup    interactive setup: Telegram token + model login");
+  console.log("  velqen-ai setup    interactive setup: Telegram token + model choice");
   console.log("  velqen-ai serve    run `opencode serve`");
 }
 
+function help() {
+  showBanner();
+  usage();
+}
+
+async function mainMenu() {
+  let first = true;
+  for (;;) {
+    const rl = createInterface({ input: process.stdin, output: process.stdout });
+    let alive = true;
+    rl.on("close", () => { alive = false; });
+    const askOnce = (q) => alive
+      ? Promise.race([rl.question(q), new Promise((res) => rl.once("close", () => res(null)))])
+      : Promise.resolve(null);
+    if (first) {
+      if (process.stdout.isTTY) console.clear();
+      showBanner();
+      first = false;
+    } else {
+      console.log("");
+    }
+    console.log("What do you want to do?");
+    console.log("  [1] Setup (Telegram token + model)");
+    console.log("  [2] Serve (start opencode backend)");
+    console.log("  [3] Doctor (check everything)");
+    console.log("  [4] Install (fill missing pieces)");
+    console.log("  [5] Exit");
+    const raw = await askOnce("Choose [1/2/3/4/5]: ");
+    rl.close();
+    const c = String(raw || "").trim();
+    if (raw === null || c === "5") break;
+    console.log("");
+    if (c === "1") await setup();
+    else if (c === "2") serve();
+    else if (c === "3") doctor();
+    else if (c === "4") install();
+    else { console.log("Unknown choice, try 1-5."); continue; }
+    const rl2 = createInterface({ input: process.stdin, output: process.stdout });
+    let alive2 = true;
+    rl2.on("close", () => { alive2 = false; });
+    if (alive2) await Promise.race([rl2.question("Press Enter to continue..."), new Promise((res) => rl2.once("close", () => res(null)))]);
+    rl2.close();
+  }
+}
+
 try {
-  const cmd = (process.argv[2] || "help").toLowerCase();
-  if (cmd === "doctor") doctor();
+  const arg = process.argv[2];
+  const cmd = (arg || "help").toLowerCase();
+  if (!arg && process.stdin.isTTY && process.stdout.isTTY) await mainMenu();
+  else if (cmd === "doctor") doctor();
   else if (cmd === "install") install();
   else if (cmd === "setup") await setup();
   else if (cmd === "serve") serve();

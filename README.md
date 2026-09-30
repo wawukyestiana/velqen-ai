@@ -27,7 +27,7 @@ velqen-ai install   # auto-installs opencode if missing, scaffolds .env
 
 `velqen-ai install` never re-downloads runtimes and never overwrites your files — it only fills what's missing. Then: fill in `.env`, `opencode auth login`, `velqen-ai serve`.
 
-After the full install, `velqen-ai` is also on your PATH (restart the terminal once) — same `doctor`/`install`/`serve` commands, no npm needed.
+After the full install, `velqen-ai` is also on your PATH (restart the terminal once) — same `doctor`/`install`/`serve` commands, no npm needed. Run it bare (`velqen-ai`) for one interactive menu instead of separate commands.
 
 ## Install on a new machine (full, 1 command)
 
