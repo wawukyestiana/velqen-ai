@@ -49,6 +49,8 @@ Non-interactive flags (skip the menu, for automation):
 - `install.bat -System` — system-wide via winget, no `tools/`.
 - Linux/macOS: `bash scripts/install.sh`
 
+Autonomy: approvals are disabled by default (single-user assistant) — `edit`/`bash` are `allow` in `opencode.json` + `agent/velqen.md`. To re-enable prompts, set them back to `ask`. Scheduled runs additionally use `opencode run --auto` since nobody is there to approve.
+
 > `tools/` holds binaries and is NOT committed to git (see `.gitignore`). A new machine = clone + install = tools/ fills itself. Only the recipe is committed.
 
 ## Install as an opencode plugin (one line)

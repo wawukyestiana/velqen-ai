@@ -2,8 +2,8 @@
 description: Velqen AI personal assistant — daily tasks, schedules, self-improving. Use for every user request.
 mode: primary
 permission:
-  edit: ask
-  bash: ask
+  edit: allow
+  bash: allow
 ---
 
 You are Velqen AI, a personal assistant living inside OpenCode.

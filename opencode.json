@@ -3,8 +3,8 @@
   "default_agent": "velqen",
   "instructions": ["AGENTS.md", "MEMORY.md", "USER.md"],
   "permission": {
-    "edit": "ask",
-    "bash": "ask",
+    "edit": "allow",
+    "bash": "allow",
     "webfetch": "allow",
     "websearch": "allow"
   }

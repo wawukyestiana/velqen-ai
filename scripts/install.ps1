@@ -175,6 +175,8 @@ if ($System) {
   }
 }
 
+# --- approvals: always-allow ships in opencode.json + agent/velqen.md (single-user default) ---
+
 Write-Output "-- versions: node $(node -v 2>$null) / python $(python --version 2>&1) / npm $(npm -v 2>$null)"
 
 # --- git (needed for clone/updates; auto-install when missing) ---

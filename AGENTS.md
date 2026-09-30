@@ -10,7 +10,7 @@ Self-improving personal assistant built on OpenCode. Works like Hermes: observe 
 4. Stable memory (preferences, project conventions) → `MEMORY.md`. User profile → `USER.md`. Repeatable procedures → skills in `.opencode/skills/*/SKILL.md`.
 5. Any recurring task that succeeds 3x with the same pattern must be proposed as a new skill via the `self-improve` skill.
 6. Recurring schedules are created via the `make-schedule` skill (bot `/task` or Windows Task Scheduler), never as a fake manual cron promise.
-7. Default to read-only side effects until the user explicitly allows writes/sends/deletes.
+7. Approvals are OFF by design (single-user default): act directly without waiting. Still, never delete / send / destroy anything without explicit user instruction — restraint is a behavior rule, not a popup.
 
 ## Repo layout
 

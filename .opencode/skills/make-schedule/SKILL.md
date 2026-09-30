@@ -23,7 +23,7 @@ Good for: morning briefings, reminders. No coding needed.
 $Root = Split-Path -Parent $PSScriptRoot
 if (Test-Path "$Root\tools\env.ps1") { . "$Root\tools\env.ps1" }
 Set-Location -LiteralPath $Root
-opencode run --agent velqen "<the task>" --format json >> "$Root\.opencode\run-log.json"
+opencode run --auto --agent velqen "<the task>" --format json >> "$Root\.opencode\run-log.json"
 ```
 2. Register it via PowerShell (resolve the repo root on the user's machine first — never hardcode a path from another computer. Show the command to the user, ask for bash approval):
 ```powershell
@@ -40,3 +40,4 @@ Register-ScheduledTask -TaskName "velqen-<name>" -Action $action -Trigger $trigg
 - Always verify: show `Get-ScheduledTask` output or `/tasklist`, never a bare claim.
 - Record active schedules in `.opencode/run-log.json` + offer to store the preference in MEMORY.md.
 - Max 5 register-verify loops. After 2 with no progress → stop + report.
+- Unattended runs need `--auto` (nobody is there to approve); interactive use follows the install-time Safe / Full-auto choice.

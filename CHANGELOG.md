@@ -14,4 +14,4 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - npm plugin entry (`plugin/velqen-ai.js`): registers the bundled agent, skills and commands in any opencode setup via `"plugin": ["velqen-ai"]`, never overwriting user config.
 - `velqen-ai` CLI via `npm install -g velqen-ai` (`doctor` auto-checks runtimes, `install` auto-installs opencode when missing).
 - Zero-click `bootstrap.ps1` one-liner (Git auto-install + clone + install).
-- Git auto-install when missing (via winget).
+- Approvals disabled by default (single-user); scheduled runs use `opencode run --auto`; Git auto-installs when missing.
